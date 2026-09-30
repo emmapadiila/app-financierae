@@ -34,6 +34,7 @@ export interface DebtPlanMonth {
 }
 
 export interface DebtPlanResult {
+  priorityOrder: string[];
   strategy: DebtPlanStrategy;
   estimatedMonths: number;
   estimatedDebtFreeMonth: string | null;
@@ -116,6 +117,7 @@ export class DebtPlanner {
     if (debts.length === 0) {
       return {
         strategy: data.strategy,
+        priorityOrder: order.map(debt => debt.id),
         estimatedMonths: 0,
         estimatedDebtFreeMonth: null,
         totalInterest: 0,
@@ -194,6 +196,7 @@ export class DebtPlanner {
       if (remainingDebt === 0) {
         return {
           strategy: data.strategy,
+          priorityOrder: order.map(debt => debt.id),
           estimatedMonths: monthlyProjection.length,
           estimatedDebtFreeMonth: month,
           totalInterest,

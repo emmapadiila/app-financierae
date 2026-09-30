@@ -13,7 +13,8 @@
     "test:ui": "node tests/browser/blockA.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:ui:b": "node tests/browser/blockB.mjs"
+    "test:ui:b": "node tests/browser/blockB.mjs",
+    "test:ui:c": "node tests/browser/blockC.mjs"
   },
   "dependencies": {
     "dexie": "^4.4.6",

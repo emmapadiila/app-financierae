@@ -173,6 +173,7 @@ export const financialSettingsSchema = z
     currency: currencySchema,
     locale: z.string().min(2).max(35),
     weekStartsOn: z.number().int().min(0).max(6),
+    debtPlan: z.object({ strategy: z.enum(['snowball', 'avalanche', 'custom']), customOrder: z.array(idSchema) }).strict().optional(),
     ...timestampsSchema.shape,
   })
   .strict();

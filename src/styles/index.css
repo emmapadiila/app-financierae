@@ -176,6 +176,56 @@ progress::-moz-progress-bar { background: #2ac56a; border-radius: 10px; }
 .movement-tabs { display: flex; gap: 8px; margin: 14px 0 18px; }
 .movement-tabs button { flex: 1; padding: 8px 5px; font-size: 14px; border-radius: 22px; background: #ffffff26; }
 .movement-tabs .active { background: white; color: #263046; }
+.debt-total { margin-top: 22px; padding: 18px; border-radius: 18px; background: var(--canvas); font-size: 12px; }
+.debt-total strong { display: block; font-size: clamp(24px, 7vw, 32px); margin-bottom: 10px; overflow-wrap: anywhere; }
+.debt-total p { margin-bottom: 8px; color: var(--muted); }
+.debt-total b { color: var(--color-brand); }
+.debt-total small { display: block; color: var(--muted); margin-top: 6px; text-align: right; }
+.debt-plan-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px; border-radius: 16px; background: linear-gradient(110deg, #139e49, #21c65b); color: white; box-shadow: 0 5px 10px #15aa4930; }
+.debt-plan-link small { display: block; font-size: 12px; margin-top: 5px; }
+.debt-grid { display: grid; gap: 16px; }
+.debt-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); min-width: 0; }
+.debt-card > header { background: linear-gradient(100deg, #3283ff, #1853ed); color: white; display: flex; gap: 12px; align-items: center; padding: 15px 18px; overflow-wrap: anywhere; }
+.debt-card > header > div { min-width: 0; }
+.debt-card > header small { opacity: .85; font-size: 12px; }
+.debt-color-1 > header { background: linear-gradient(100deg, #b445f5, #9408ed); }
+.debt-color-2 > header { background: linear-gradient(100deg, #188c99, #11697d); }
+.debt-card-content { padding: 16px; }
+.debt-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; margin-bottom: 14px; overflow-wrap: anywhere; }
+.debt-facts dt { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.debt-facts dd { font-size: 15px; }
+.debt-actions { display: flex; gap: 8px; margin-top: 14px; }
+.debt-actions .button { flex: 1; font-size: 12px; min-height: 44px; padding: 8px; }
+.payment-history li { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; }
+.payment-history small { width: 100%; overflow-wrap: anywhere; }
+.plan-goal { background: linear-gradient(110deg, #16a14a, #128139); border-radius: 24px; color: white; padding: 24px; box-shadow: 0 8px 16px #159b4925; }
+.plan-goal > svg { float: right; width: 40px; height: 40px; }
+.plan-goal > span, .plan-goal small { font-size: 12px; opacity: .85; }
+.plan-goal h2 { font-size: 20px; margin-top: 8px; }
+.plan-goal strong { display: block; font-size: 30px; font-weight: 400; }
+.plan-goal p { margin: 18px 0 8px; padding-top: 14px; border-top: 1px solid #ffffff25; font-size: 14px; }
+.strategy-card { display: flex; width: 100%; text-align: left; align-items: center; gap: 14px; padding: 18px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; }
+.strategy-card.selected { border-color: #93c5fd; background: #eff6ff; }
+[data-theme='dark'] .strategy-card.selected { background: #1b3550; }
+.strategy-card span { flex: 1; min-width: 0; }
+.strategy-card b { font-weight: 500; font-size: 14px; }
+.strategy-card small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.custom-debt-order li { display: flex; gap: 8px; align-items: center; margin-top: 8px; padding: 12px; background: var(--surface); border-radius: 12px; }
+.custom-debt-order span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.custom-debt-order button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.debt-timeline { padding-left: 44px; }
+.debt-timeline > li { position: relative; padding-bottom: 16px; }
+.debt-timeline > li::before { content: ''; position: absolute; left: -27px; top: 15px; bottom: -15px; width: 2px; background: var(--line); }
+.debt-timeline > li:last-child::before { bottom: 30px; }
+.timeline-marker { position: absolute; left: -44px; top: 2px; border: 2px solid var(--line); border-radius: 50%; width: 36px; height: 36px; background: var(--surface); display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+.timeline-marker.settled { color: white; background: var(--color-brand); border-color: var(--color-brand); }
+.timeline-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 6px 0; font-size: 14px; overflow-wrap: anywhere; }
+.debt-timeline .card { padding: 14px; overflow-wrap: anywhere; }
+.debt-timeline details { margin-top: 10px; color: var(--muted); font-size: 12px; }
+.debt-timeline details summary { cursor: pointer; }
+.debt-timeline details li { margin-top: 10px; }
+.debt-timeline details span { display: block; }
+@media (min-width: 768px) { .debt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .movement-tabs button { display: flex; align-items: center; justify-content: center; gap: 5px; }
 .movement-tabs .icon { width: 16px; height: 16px; }
 .movement-fields { min-width: 0; border: 0; padding: 0; margin: 0; }

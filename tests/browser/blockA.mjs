@@ -169,7 +169,7 @@ try {
   await waitFor('document.documentElement.dataset.theme === "dark" && document.querySelector(".summary-card")');
   await available('$1.560.000');
   await click('Activar tema claro');
-  await click('Deudas: próximamente');
+  await click('Más: próximamente');
   assert.equal(await page.evaluate('location.pathname'), '/dashboard');
   assert.ok(await page.evaluate('document.querySelector("[role=status]").textContent.includes("próxima entrega")'));
   await click('Cerrar aviso');

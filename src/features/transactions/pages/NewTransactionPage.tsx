@@ -35,7 +35,9 @@ export function NewTransactionPage() {
   const variant = variants.find((item) => item.kind === params.get('kind')) ?? variants[0];
   const kind = variant.kind;
   const [amount, setAmount] = useState('');
-  const [name, setName] = useState('');
+  const initialDebt = data?.debts.find(debt => debt.id === params.get('debtId'));
+  const returnPath = params.get('returnTo') === 'debts' ? '/debts' : '/transactions';
+  const [name, setName] = useState(initialDebt ? `Pago de ${initialDebt.name}`.slice(0, 120) : '');
   const [category, setCategory] = useState('');
   const [expenseKind, setExpenseKind] = useState<'fixed' | 'variable'>('variable');
   const [date, setDate] = useState(localDate);
@@ -43,7 +45,7 @@ export function NewTransactionPage() {
   const [method, setMethod] = useState<MovementInput['paymentMethod']>('cash');
   const [note, setNote] = useState('');
   const [repeat, setRepeat] = useState(false);
-  const [debtId, setDebtId] = useState('');
+  const [debtId, setDebtId] = useState(initialDebt?.id ?? '');
   const [frequency, setFrequency] = useState<MovementInput['frequency']>('occasional');
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
@@ -77,7 +79,7 @@ export function NewTransactionPage() {
         repeatMonthly: repeat,
       });
       setMonth(date.slice(0, 7));
-      void navigate('/transactions', { state: { saved: true }, replace: true });
+      void navigate(returnPath, { state: { saved: true }, replace: true });
     } catch (reason) {
       setError(errorMessage(reason));
       lock.current = false;
@@ -89,7 +91,7 @@ export function NewTransactionPage() {
       <form onSubmit={(event) => void submit(event)} aria-busy={saving}>
         <fieldset disabled={saving} className="movement-fields">
           <header className={`movement-header header-${kind}`}>
-            <Link to="/transactions" className="back-link">
+            <Link to={returnPath} className="back-link">
               <Icon name="back" />
               Volver
             </Link>
