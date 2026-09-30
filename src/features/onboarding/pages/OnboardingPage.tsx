@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useFinance } from '../../../app/state/financeContext';
-import { completeOnboarding, localDate, previewOnboarding, type OnboardingInput } from '../../../app/services/financeWorkspace';
+import { localDate, previewOnboarding, type OnboardingInput } from '../../../app/services/financeWorkspace';
 import { AppShell } from '../../../components/layout/AppShell';
 import { Button, Card, ErrorNotice, Field, MoneyField } from '../../../components/ui/Controls';
 import { Icon } from '../../../components/ui/Icon';
@@ -15,7 +15,7 @@ const titles = ['¿Cuánto dinero entra a tu hogar cada mes?', 'Agrega tus gasto
 const subtitles = ['Incluye salarios, arriendos, pensiones o cualquier ingreso regular.', 'Selecciona los que apliquen a tu hogar e ingresa sus valores.', 'Préstamos, tarjetas de crédito, cuotas. Sin juzgar.', 'Elige una reserva que se ajuste a tus ingresos.', 'Esta es tu foto financiera prevista de este mes.'];
 
 export function OnboardingPage() {
-  const { database, family } = useFinance();
+  const { initialize, family } = useFinance();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [income, setIncome] = useState('');
@@ -48,7 +48,7 @@ export function OnboardingPage() {
       return;
     }
     setSaving(true);
-    try { await completeOnboarding(database, input()); setSaved(true); } catch (reason) { setError(errorMessage(reason)); setSaving(false); }
+    try { await initialize(input()); setSaved(true); } catch (reason) { setError(errorMessage(reason)); setSaving(false); }
   }
   return <AppShell navigation={false}><form onSubmit={event => void submit(event)} className="onboarding"><header className="onboarding-header">{step > 1 ? <button type="button" aria-label="Paso anterior" disabled={saving} onClick={() => { setStep(step - 1); setError(''); }}><Icon name="back" /></button> : <span className="w-2" />}<div className="step-bars" role="progressbar" aria-label="Progreso de configuración" aria-valuemin={0} aria-valuemax={5} aria-valuenow={step}>{[1, 2, 3, 4, 5].map(item => <span key={item} className={item <= step ? 'done' : ''} />)}</div><span className="muted text-xs">{step}/5</span></header><main id="main" className="onboarding-main"><p className="text-brand text-sm mb-2">{step === 5 ? '¡Listo!' : `Paso ${step} de 5`}</p><h1>{titles[step - 1]}</h1><p className="muted mt-3 mb-6 leading-relaxed">{subtitles[step - 1]}</p>
     {step === 1 && <><Card><MoneyField label="Ingreso mensual total" value={income} onChange={setIncome} prominent required /><p className="muted text-sm mt-3">≈ {formatMoney(Number(income))} COP / mes</p></Card><Button variant="secondary" type="button" className="mt-5" onClick={() => setIncome('0')}>Por ahora no tengo ingresos</Button><p className="muted text-xs mt-4">Podrás registrar ingresos adicionales en cualquier momento.</p></>}

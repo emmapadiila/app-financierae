@@ -85,7 +85,11 @@ function sortDebts(
   }
 
   const ids = customOrder ?? [];
-  if (ids.length !== debts.length || new Set(ids).size !== ids.length || ids.some((id) => !originalPosition.has(id))) {
+  if (
+    ids.length !== debts.length ||
+    new Set(ids).size !== ids.length ||
+    ids.some((id) => !originalPosition.has(id))
+  ) {
     throw new PlanningError('El orden personalizado debe incluir cada deuda exactamente una vez.');
   }
   const rank = new Map(ids.map((id, index) => [id, index]));
@@ -95,9 +99,14 @@ function sortDebts(
 export class DebtPlanner {
   calculate(input: DebtPlanInput): DebtPlanResult {
     const data = debtPlanInputSchema.parse(input);
+    if (new Set(data.debts.map((debt) => debt.id)).size !== data.debts.length) {
+      throw new PlanningError('Cada deuda debe tener un identificador único.');
+    }
     const debts = data.debts.filter((debt) => debt.remainingBalance > 0);
     const maxMonths = data.maxMonths ?? 600;
-    const order = sortDebts(debts, data.strategy, data.customOrder);
+    const order = sortDebts(data.debts, data.strategy, data.customOrder).filter(
+      (debt) => debt.remainingBalance > 0,
+    );
     const balances = new Map(debts.map((debt) => [debt.id, debt.remainingBalance]));
     const monthlyPaymentBudget =
       debts.reduce((total, debt) => total + debt.minimumPayment, 0) + data.extraMonthlyPayment;
@@ -157,9 +166,15 @@ export class DebtPlanner {
         payment: paymentsByDebt.get(debt.id) ?? 0,
         remainingBalance: balances.get(debt.id) ?? 0,
       }));
-      const monthPayment = roundMoney(payments.reduce((total, payment) => total + payment.payment, 0));
-      const remainingDebt = roundMoney([...balances.values()].reduce((total, balance) => total + balance, 0));
-      const madeProgress = payments.some((payment) => payment.remainingBalance < payment.startingBalance);
+      const monthPayment = roundMoney(
+        payments.reduce((total, payment) => total + payment.payment, 0),
+      );
+      const remainingDebt = roundMoney(
+        [...balances.values()].reduce((total, balance) => total + balance, 0),
+      );
+      const madeProgress = payments.some(
+        (payment) => payment.remainingBalance < payment.startingBalance,
+      );
 
       if (!madeProgress) {
         throw new PlanningError(

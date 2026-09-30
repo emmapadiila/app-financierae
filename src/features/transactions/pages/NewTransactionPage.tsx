@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useFinance } from '../../../app/state/financeContext';
-import { localDate, saveMovement, type MovementInput } from '../../../app/services/financeWorkspace';
+import { localDate, type MovementInput } from '../../../app/services/financeWorkspace';
 import { AppShell } from '../../../components/layout/AppShell';
 import { Button, Card, EmptyState, ErrorNotice, Field, MoneyField, Segmented } from '../../../components/ui/Controls';
 import { Icon } from '../../../components/ui/Icon';
@@ -12,7 +12,7 @@ const variants = [ { kind: 'expense', label: '🛒 Gasto', title: 'Nuevo gasto',
 const methods = [{ value: 'cash', label: '💵 Efectivo' }, { value: 'card', label: '💳 Tarjeta' }, { value: 'transfer', label: '📱 Transferencia' }, { value: 'wallet', label: '📲 Nequi/Daviplata' }] as const;
 
 export function NewTransactionPage() {
-  const { app, family, data, setMonth } = useFinance();
+  const { app, family, data, setMonth, recordMovement } = useFinance();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const variant = variants.find(item => item.kind === params.get('kind')) ?? variants[0];
@@ -31,8 +31,6 @@ export function NewTransactionPage() {
   const lock = useRef(false);
   const [error, setError] = useState('');
   if (!app || !family || !data) return null;
-  const activeApp = app;
-  const activeFamily = family;
   const debt = data.debts.find(item => item.id === debtId);
   const unpaidDebts = data.debts.filter(item => item.remainingBalance > 0);
   async function submit(event: FormEvent) {
@@ -41,7 +39,7 @@ export function NewTransactionPage() {
     if (kind === 'expense' && !category) { setError('Selecciona una categoría para el gasto.'); return; }
     lock.current = true; setSaving(true); setError('');
     try {
-      await saveMovement(activeApp, activeFamily.id, { kind, amount: Number(amount), name, date, category: kind === 'expense' ? category : kind === 'income' ? 'Ingreso' : 'Deuda', expenseKind, frequency, ...(debtId ? { debtId } : {}), paymentMethod: method, note, repeatMonthly: repeat });
+      await recordMovement({ kind, amount: Number(amount), name, date, category: kind === 'expense' ? category : kind === 'income' ? 'Ingreso' : 'Deuda', expenseKind, frequency, ...(debtId ? { debtId } : {}), paymentMethod: method, note, repeatMonthly: repeat });
       setMonth(date.slice(0, 7));
       void navigate('/dashboard', { state: { saved: true }, replace: true });
     } catch (reason) { setError(errorMessage(reason)); lock.current = false; setSaving(false); }

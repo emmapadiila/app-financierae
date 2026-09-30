@@ -1,12 +1,13 @@
 import { createContext, useContext } from 'react';
 import type { Family } from '../../domain/models/financial';
-import type { FinanceDatabase } from '../../infrastructure/storage/FinanceDatabase';
-import type { FinanceApplication, WorkspaceData } from '../services/financeWorkspace';
+import type { WorkspaceData } from '../services/financeWorkspace';
+import type { FinanceSession, FinanceSnapshot } from '../services/financeSession';
 
 export interface FinanceContextValue {
-  database: FinanceDatabase;
+  initialize: FinanceSession['initialize'];
+  recordMovement: FinanceSession['recordMovement'];
   family: Family | null;
-  app: FinanceApplication | null;
+  app: FinanceSnapshot['app'];
   data: WorkspaceData | null;
   loading: boolean;
   error: string;

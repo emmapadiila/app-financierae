@@ -38,28 +38,33 @@ export interface DebtSimulatorResult {
   disclaimer: string;
 }
 
-const simulatorInputSchema = z.object({
-  debts: z.array(
-    z.object({
-      id: z.uuid(),
-      name: z.string().min(1),
-      remainingBalance: z.number().finite().nonnegative(),
-      annualInterestRate: z.number().finite().nonnegative(),
-      minimumPayment: z.number().finite().nonnegative(),
+const simulatorInputSchema = z
+  .object({
+    debts: z.array(
+      z.object({
+        id: z.uuid(),
+        name: z.string().min(1),
+        remainingBalance: z.number().finite().nonnegative(),
+        annualInterestRate: z.number().finite().nonnegative(),
+        minimumPayment: z.number().finite().nonnegative(),
+      }),
+    ),
+    monthlyIncome: z.number().finite().nonnegative(),
+    monthlyExpenses: z.number().finite().nonnegative(),
+    currentExtraDebtPayment: z.number().finite().nonnegative(),
+    changes: z.object({
+      incomeIncrease: z.number().finite().nonnegative(),
+      expenseReduction: z.number().finite().nonnegative(),
+      debtPaymentIncrease: z.number().finite().nonnegative(),
     }),
-  ),
-  monthlyIncome: z.number().finite().nonnegative(),
-  monthlyExpenses: z.number().finite().nonnegative(),
-  currentExtraDebtPayment: z.number().finite().nonnegative(),
-  changes: z.object({
-    incomeIncrease: z.number().finite().nonnegative(),
-    expenseReduction: z.number().finite().nonnegative(),
-    debtPaymentIncrease: z.number().finite().nonnegative(),
-  }),
-  strategy: z.enum(['snowball', 'avalanche', 'custom']),
-  startMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
-  customOrder: z.array(z.uuid()).optional(),
-});
+    strategy: z.enum(['snowball', 'avalanche', 'custom']),
+    startMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+    customOrder: z.array(z.uuid()).optional(),
+  })
+  .refine((input) => input.changes.expenseReduction <= input.monthlyExpenses, {
+    path: ['changes', 'expenseReduction'],
+    message: 'La reducción de gastos no puede superar los gastos actuales.',
+  });
 
 function scenarioFromPlan(
   plan: ReturnType<DebtPlanner['calculate']>,
@@ -78,11 +83,16 @@ export class DebtSimulator {
 
   simulate(input: DebtSimulatorInput): DebtSimulatorResult {
     const data = simulatorInputSchema.parse(input);
-    const minimumPayments = data.debts.reduce((total, debt) => total + debt.minimumPayment, 0);
+    const minimumPayments = data.debts
+      .filter((debt) => debt.remainingBalance > 0)
+      .reduce((total, debt) => total + debt.minimumPayment, 0);
     const currentExtra = data.currentExtraDebtPayment;
     const availableAfterChanges = Math.max(
       0,
-      data.monthlyIncome + data.changes.incomeIncrease - data.monthlyExpenses + data.changes.expenseReduction,
+      data.monthlyIncome +
+        data.changes.incomeIncrease -
+        data.monthlyExpenses +
+        data.changes.expenseReduction,
     );
     const simulatedExtra = Math.max(
       0,
@@ -100,8 +110,14 @@ export class DebtSimulator {
       startMonth: data.startMonth,
       ...(data.strategy === 'custom' && data.customOrder ? { customOrder: data.customOrder } : {}),
     };
-    const currentPlan = this.debtPlanner.calculate({ ...planInput, extraMonthlyPayment: currentExtra });
-    const simulatedPlan = this.debtPlanner.calculate({ ...planInput, extraMonthlyPayment: simulatedExtra });
+    const currentPlan = this.debtPlanner.calculate({
+      ...planInput,
+      extraMonthlyPayment: currentExtra,
+    });
+    const simulatedPlan = this.debtPlanner.calculate({
+      ...planInput,
+      extraMonthlyPayment: simulatedExtra,
+    });
 
     return {
       current: scenarioFromPlan(currentPlan, currentExtra),
