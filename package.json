@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:ui": "node tests/browser/blockA.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:ui:b": "node tests/browser/blockB.mjs"
   },
   "dependencies": {
     "dexie": "^4.4.6",

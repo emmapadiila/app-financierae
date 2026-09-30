@@ -176,6 +176,19 @@ progress::-moz-progress-bar { background: #2ac56a; border-radius: 10px; }
 .movement-tabs { display: flex; gap: 8px; margin: 14px 0 18px; }
 .movement-tabs button { flex: 1; padding: 8px 5px; font-size: 14px; border-radius: 22px; background: #ffffff26; }
 .movement-tabs .active { background: white; color: #263046; }
+.movement-tabs button { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.movement-tabs .icon { width: 16px; height: 16px; }
+.movement-fields { min-width: 0; border: 0; padding: 0; margin: 0; }
+.movement-fields:disabled { opacity: .7; }
+.chips button, .category-chip { display: inline-flex; align-items: center; gap: 5px; }
+.chips .finance-icon { width: 20px; height: 20px; padding: 2px; background: transparent; }
+.chips + .field { margin-top: 12px; }
+.success-notice { background: var(--soft); color: var(--color-brand); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+.floating-menu { animation: reveal-actions .16s ease-out; transform-origin: bottom right; }
+.fab { transition: transform .16s ease-out; }
+.fab[aria-expanded="true"] { transform: rotate(90deg); }
+@keyframes reveal-actions { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .floating-menu { animation: none; } .fab { transition: none; } }
 .movement-header h1 { font-size: 25px; }
 .movement-form { padding: 0 22px calc(30px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 18px; }
 .amount-card { margin-top: -18px; position: relative; padding: 24px 20px; }

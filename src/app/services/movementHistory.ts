@@ -1,6 +1,10 @@
 import type { FinancialTransaction } from '../../domain/models/financial';
 import type { WorkspaceData } from './financeWorkspace';
 
+export function filteredMovementHistory(data: WorkspaceData, month: string, filter = 'all') {
+  return movementHistory(data).filter(item => item.date.startsWith(month) && (filter === 'all' || item.kind === filter));
+}
+
 // Read adapter for pre-existing records without ledger entries; never persists or
 // feeds financial calculators. Linked ledger entries replace, not duplicate, them.
 export function movementHistory(data: WorkspaceData): FinancialTransaction[] {

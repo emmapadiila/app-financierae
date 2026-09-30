@@ -19,7 +19,7 @@ export type OnboardingInput = z.infer<typeof onboardingSchema>;
 export const movementSchema = z.object({
   kind: z.enum(['income', 'expense', 'debt-payment']),
   amount: money.positive(), name: z.string().trim().min(1).max(120),
-  date: z.iso.date(), category: z.string().trim().min(1).max(80),
+  date: z.iso.date(), dueDate: z.iso.date().optional(), category: z.string().trim().min(1).max(80),
   expenseKind: z.enum(['fixed', 'variable']), frequency: z.enum(['occasional', 'monthly', 'biweekly', 'weekly']),
   debtId: z.uuid().optional(), paymentMethod: z.enum(['cash', 'card', 'transfer', 'wallet']),
   note: z.string().trim().max(500), repeatMonthly: z.boolean(),
@@ -58,7 +58,7 @@ export async function saveMovement(app: FinanceApplication, familyId: string, ra
       const income = await app.services.incomes.create({ name: input.name, amount: input.amount, effectiveDate: input.date, frequency: input.frequency, isActive: true });
       relatedEntityId = income.id;
     } else if (input.kind === 'expense') {
-      const expense = await app.services.expenses.create({ name: input.name, amount: input.amount, dueDate: input.date, kind: input.expenseKind, categoryId: await categoryId(app, familyId, input.category) });
+      const expense = await app.services.expenses.create({ name: input.name, amount: input.amount, dueDate: input.dueDate ?? input.date, kind: input.expenseKind, categoryId: await categoryId(app, familyId, input.category) });
       await app.services.expenses.markAsPaid(expense.id, `${input.date}T12:00:00.000Z`);
       relatedEntityId = expense.id;
     } else {
@@ -128,9 +128,9 @@ export async function materializeRecurringExpenses(app: FinanceApplication, fami
       if (!original.relatedEntityId) continue;
       const source = await app.repositories.expenses.get(original.relatedEntityId);
       if (!source || source.familyId !== familyId) continue;
-      for (let month = addMonthsToMonth(original.date.slice(0, 7), 1); month <= today.slice(0, 7); month = addMonthsToMonth(month, 1)) {
+      for (let month = addMonthsToMonth(source.dueDate.slice(0, 7), 1); month <= today.slice(0, 7); month = addMonthsToMonth(month, 1)) {
         if (movements.some(item => item.details?.recurrenceSourceId === original.id && item.date.startsWith(month))) continue;
-        const day = Math.min(Number(original.date.slice(8)), Number(monthRange(month).end.slice(8)));
+        const day = Math.min(Number(source.dueDate.slice(8)), Number(monthRange(month).end.slice(8)));
         const date = `${month}-${String(day).padStart(2, '0')}`;
         const expense = await app.services.expenses.create({ name: source.name, amount: source.amount, kind: source.kind, dueDate: date, ...(source.categoryId ? { categoryId: source.categoryId } : {}) });
         const movement = await record(app, familyId, { kind: 'expense', description: expense.name, amount: expense.amount, date, relatedEntityId: expense.id, details: { ...original.details, repeatMonthly: false, recurrenceSourceId: original.id } });
