@@ -137,6 +137,13 @@ export const financialTransactionSchema = z
     amount: positiveAmountSchema,
     date: dateSchema,
     relatedEntityId: idSchema.optional(),
+    details: z.object({
+      categoryName: z.string().trim().max(80).optional(),
+      paymentMethod: z.enum(['cash', 'card', 'transfer', 'wallet']).optional(),
+      note: z.string().trim().max(500).optional(),
+      repeatMonthly: z.boolean().optional(),
+      recurrenceSourceId: idSchema.optional(),
+    }).strict().optional(),
     ...timestampsSchema.shape,
   })
   .strict();
