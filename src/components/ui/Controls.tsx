@@ -14,7 +14,7 @@ export function MoneyField({ label, value, onChange, prominent = false, required
   const id = useId();
   return <label className={`money-field ${prominent ? 'money-prominent' : ''}`} htmlFor={id}><span>{label}</span><div><span aria-hidden="true">$</span><input id={id} type="number" inputMode="decimal" min={min} max={Number.MAX_SAFE_INTEGER} step="0.01" placeholder="0" value={value} required={required} onChange={event => onChange(event.target.value)} /></div></label>;
 }
-export function EmptyState({ icon = '🌱', children, action }: { icon?: string; children: ReactNode; action?: ReactNode }) {
+export function EmptyState({ icon = null, children, action }: { icon?: ReactNode; children: ReactNode; action?: ReactNode }) {
   return <div className="empty-state"><span className="text-3xl" aria-hidden="true">{icon}</span><p>{children}</p>{action}</div>;
 }
 export function ErrorNotice({ message }: { message: string }) { return message ? <p role="alert" className="error-notice">{message}</p> : null; }

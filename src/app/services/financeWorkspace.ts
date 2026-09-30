@@ -11,9 +11,9 @@ import { createId } from '../../shared/utils/ids';
 export type FinanceApplication = ReturnType<typeof createFinanceApplication>;
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const money = z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const draftExpense = z.object({ name: z.string().trim().min(1).max(120), category: z.string().trim().min(1).max(80), amount: money.positive() });
-const draftDebt = z.object({ name: z.string().trim().min(1).max(120), creditor: z.string().trim().min(1).max(120), principal: money.positive(), minimumPayment: money, annualInterestRate: money.max(1000), dueDay: z.number().int().min(1).max(31) });
-export const onboardingSchema = z.object({ income: money, expenses: z.array(draftExpense), debts: z.array(draftDebt), savings: money });
+const draftExpense = z.object({ name: z.string().trim().min(1).max(120), category: z.string().trim().min(1).max(80), amount: money.positive(), dueDate: z.iso.date().optional() });
+const draftDebt = z.object({ name: z.string().trim().min(1).max(120), creditor: z.string().trim().min(1).max(120), principal: money.positive(), remainingBalance: money.optional(), minimumPayment: money, annualInterestRate: money.max(1000), dueDay: z.number().int().min(1).max(31) });
+export const onboardingSchema = z.object({ income: money, expenses: z.array(draftExpense), debts: z.array(draftDebt), savings: money, savingsAlreadySetAside: z.boolean().optional() });
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 
 export const movementSchema = z.object({
@@ -98,10 +98,14 @@ export async function completeOnboarding(database: FinanceDatabase, raw: Onboard
       await record(app, family.id, { kind: 'income', description: income.name, amount: income.amount, date, relatedEntityId: income.id });
     }
     for (const item of input.expenses) {
-      const expense = await app.services.expenses.create({ name: item.name, amount: item.amount, dueDate: date, kind: 'fixed', categoryId: await categoryId(app, family.id, item.category) });
-      await record(app, family.id, { kind: 'expense', description: expense.name, amount: expense.amount, date, relatedEntityId: expense.id, details: { categoryName: item.category, repeatMonthly: true } });
+      const expense = await app.services.expenses.create({ name: item.name, amount: item.amount, dueDate: item.dueDate ?? date, kind: 'fixed', categoryId: await categoryId(app, family.id, item.category) });
+      await record(app, family.id, { kind: 'expense', description: expense.name, amount: expense.amount, date: expense.dueDate, relatedEntityId: expense.id, details: { categoryName: item.category, repeatMonthly: true } });
     }
     for (const debt of input.debts) await app.services.debts.create(debt);
+    if (input.savings > 0) {
+      const goal = await app.services.savings.createGoal({ name: 'Reserva mensual de ahorro', targetAmount: input.savings });
+      if (input.savingsAlreadySetAside) await app.services.savings.contribute(goal.id, { amount: input.savings, date });
+    }
     const preview = previewOnboarding(input, date);
     const timestamp = currentTimestamp();
     await app.repositories.budgets.save(monthlyBudgetSchema.parse({

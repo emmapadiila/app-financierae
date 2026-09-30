@@ -213,3 +213,62 @@ progress::-moz-progress-bar { background: #2ac56a; border-radius: 10px; }
   .movement-tabs button { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
+
+/* Block A: shared visual controls and responsive input overlays. */
+.finance-icon { display: inline-grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; color: #9b6a00; background: #fff4cc; }
+.finance-icon svg { width: 23px; height: 23px; stroke-width: 1.7; }
+.icon-water, .icon-globe { color: #087ca2; background: #e5f8ff; }
+.icon-flame, .icon-car { color: #ce4936; background: #fff0e7; }
+.icon-cart, .icon-movements, .icon-education { color: #475569; background: #edf1f6; }
+.icon-home, .icon-target, .icon-party, .icon-shield { color: #16864b; background: #e8f8ee; }
+.icon-savings { color: #d45c6d; background: #fff0f2; }
+.icon-calendar { color: #477dd0; background: #edf3ff; }
+.stat-card .finance-icon { background: transparent; }
+.stat-card .finance-icon svg { width: 28px; height: 28px; }
+.icon-button { display: inline-grid; place-items: center; min-width: 40px; min-height: 40px; color: var(--muted); border-radius: 10px; }
+.icon-button:hover { background: var(--soft); }
+.choice-check { width: 14px; height: 14px; padding: 2px; }
+.choice-check svg { width: 10px; height: 10px; stroke-width: 3; }
+.expense-option { min-height: 74px; padding: 12px 9px; gap: 7px; }
+.expense-option .finance-icon { width: 30px; height: 30px; background: transparent; }
+.expense-option > span:nth-child(2) { min-width: 0; }
+.expense-option small { font-variant-numeric: tabular-nums; color: var(--muted); }
+.expense-option .choice-check { position: absolute; top: 8px; right: 7px; }
+.debt-choice .finance-icon { width: 42px; height: 42px; background: transparent; }
+.debt-choice .finance-icon svg { width: 31px; height: 31px; }
+.selected-expenses { margin-top: 16px; }
+.selected-expenses li { display: flex; align-items: center; gap: 8px; font-size: 12px; border-bottom: 1px solid var(--line); }
+.selected-expenses li b { margin-left: auto; font-weight: 500; }
+.selected-expenses li .icon-button { min-width: 32px; }
+.form-dialog { width: min(440px, calc(100% - 24px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); color: inherit; box-shadow: 0 20px 70px #17223833; overscroll-behavior: contain; }
+.form-dialog::backdrop { background: #17223870; backdrop-filter: blur(3px); }
+.dialog-content { padding: 22px; }
+.form-dialog h2 { font-size: 19px; }
+.form-dialog .money-field { padding: 14px; background: var(--canvas); border-radius: 14px; }
+.form-dialog input { scroll-margin: 30px; }
+.savings-confirmation { margin-top: 24px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; align-items: flex-start; line-height: 1.5; }
+.savings-confirmation input { flex-shrink: 0; margin-top: 2px; }
+.saved-confirmation { display: flex; align-items: center; gap: 8px; margin-top: 22px; font-size: 12px; color: #16844a; }
+.saved-confirmation svg { flex-shrink: 0; }
+.onboarding-main h1:focus { outline: none; }
+.onboarding-main > form { min-width: 0; }
+.summary-grid > div > span { display: flex; align-items: center; gap: 5px; }
+.summary-grid svg { width: 13px; height: 13px; }
+.summary-projected .summary-grid svg { display: none; }
+.badge-blue { color: #386fc2; background: #eaf2ff; }
+.stat-card strong, .available-value, .summary-grid b { font-variant-numeric: tabular-nums; }
+.quick-actions > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
+.quick-actions > button > svg { width: 27px; height: 27px; }
+.quick-actions > button > span { font-size: 12px; margin: 0; }
+.summary-projected .available-value { margin-bottom: 10px; }
+.bottom-nav > button:hover { color: var(--color-brand); }
+.nav-item { min-height: 50px; }
+.page-content .reserve-note { margin-top: 0; }
+:root[data-theme='dark'] .finance-icon { background: #ffffff0c; }
+:root[data-theme='dark'] .finance-icon svg { filter: brightness(1.5); }
+:root[data-theme='dark'] .chosen { color: #80e0a5; }
+:root[data-theme='dark'] .selection-total, :root[data-theme='dark'] .saved-confirmation { color: #80e0a5; }
+:root[data-theme='dark'] .stat-badge { color: #85dfa7; }
+:root[data-theme='dark'] .badge-red { background: #522f3b; color: #ffb5c0; }
+:root[data-theme='dark'] .badge-blue { background: #273c59; color: #a9cfff; }
+@media (max-width: 350px) { .expense-option { font-size: 11px; padding: 10px 6px; gap: 4px; } .expense-option .finance-icon { width: 27px; } .expense-option small { font-size: 10px; } .dialog-content { padding: 18px; } }

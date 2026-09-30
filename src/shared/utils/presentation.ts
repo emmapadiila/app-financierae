@@ -1,7 +1,7 @@
 import { ZodError } from 'zod';
 
 export function formatMoney(amount: number, currency = 'COP', locale = 'es-CO') {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount).replace(/^\$\s+/, '$');
 }
 export function formatMonth(month: string) {
   const result = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${month}-01T12:00:00Z`));
