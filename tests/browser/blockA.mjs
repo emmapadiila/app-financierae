@@ -65,7 +65,13 @@ async function start(profile) {
       if (response.exceptionDetails) throw new Error(JSON.stringify(response.exceptionDetails));
       return response.result.value;
     },
-    close: async () => { const closed = once(browser, 'exit'); await call('Browser.close'); await closed; socket.close(); },
+    close: async () => {
+      const closed = once(browser, 'exit');
+      // Chrome can exit before acknowledging Browser.close over CDP.
+      await Promise.race([call('Browser.close'), closed]);
+      await closed;
+      socket.close();
+    },
   };
 }
 async function waitFor(expression, message = expression) {
