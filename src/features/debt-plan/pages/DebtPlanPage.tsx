@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useFinance } from '../../../app/state/financeContext';
 import { debtPlanView } from '../../../app/services/debtViews';
@@ -122,6 +122,13 @@ export function DebtPlanPage() {
               reasignan las cuotas liberadas. No se supone ningún aporte adicional ni se garantiza
               que el presupuesto alcance para las cuotas.
             </p>
+            <Link className="card settings-link" to="/simulator">
+              <span>
+                <b>¿Qué pasaría si...?</b>
+                <small>Simula cambios en tu plan</small>
+              </span>
+              <span className="text-link">Abrir simulador →</span>
+            </Link>
             <fieldset disabled={saving} className="space-y-3">
               <legend className="mb-3">¿Cómo quieres organizar tus deudas?</legend>
               {strategies.map((option) => (

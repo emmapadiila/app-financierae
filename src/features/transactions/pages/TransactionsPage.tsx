@@ -9,6 +9,8 @@ import { Icon } from '../../../components/ui/Icon';
 import { MonthSelector } from '../../../components/finance/MonthSelector';
 import { formatDate, formatMoney } from '../../../shared/utils/presentation';
 import { FinanceIcon } from '../../../components/ui/FinanceIcon';
+import { MovementEditor } from '../components/MovementEditor';
+import type { FinancialTransaction } from '../../../domain/models/financial';
 const filters = [
   { value: 'all', label: 'Todos' },
   { value: 'income', label: 'Ingresos' },
@@ -21,6 +23,8 @@ export function TransactionsPage() {
   const location = useLocation();
   const [params, setParams] = useSearchParams();
   const [menu, setMenu] = useState(false);
+  const [editing, setEditing] = useState<FinancialTransaction | null>(null);
+  const [search, setSearch] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -44,7 +48,11 @@ export function TransactionsPage() {
   const filter = filters.some((item) => item.value === params.get('filter'))
     ? params.get('filter')!
     : 'all';
-  const movements = filteredMovementHistory(data, month, filter);
+  const movements = filteredMovementHistory(data, month, filter).filter((item) =>
+    `${item.description} ${item.details?.categoryName ?? ''}`
+      .toLocaleLowerCase()
+      .includes(search.toLocaleLowerCase()),
+  );
   const dates = [...new Set(movements.map((item) => item.date))];
   const budget = app.calculators.budget.calculate({ ...data, month });
   const currency = data.settings?.currency ?? family.currency;
@@ -89,6 +97,15 @@ export function TransactionsPage() {
         />
       </header>
       <main id="main" className="page-content">
+        <label className="field search-field">
+          <span>Buscar movimientos</span>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nombre o categoría"
+          />
+        </label>
         {location.state?.saved && (
           <p role="status" className="success-notice">
             Movimiento guardado correctamente.
@@ -142,21 +159,37 @@ export function TransactionsPage() {
                             {...(item.kind === 'expense'
                               ? {}
                               : {
-                                  name:
-                                    item.kind === 'income'
+                                  name: item.kind.startsWith('savings-')
+                                    ? ('savings' as const)
+                                    : item.kind === 'income'
                                       ? ('wallet' as const)
                                       : ('debt' as const),
                                 })}
                             category={category}
                           />
                           <div className="min-w-0 flex-1">
-                            <p className="break-words">{item.description}</p>
+                            {['income', 'expense'].includes(item.kind) ? (
+                              <button
+                                className="movement-edit"
+                                type="button"
+                                aria-label={`Editar ${item.description}`}
+                                onClick={() => setEditing(item)}
+                              >
+                                {item.description}
+                              </button>
+                            ) : (
+                              <p className="break-words">{item.description}</p>
+                            )}
                             <small className="muted">
                               {item.kind === 'income'
                                 ? 'Ingreso'
                                 : item.kind === 'expense'
                                   ? 'Gasto'
-                                  : 'Pago'}{' '}
+                                  : item.kind === 'savings-contribution'
+                                    ? 'Aporte'
+                                    : item.kind === 'savings-withdrawal'
+                                      ? 'Retiro'
+                                      : 'Pago'}{' '}
                               · {category}
                               {expense && !expense.paidAt ? ' · Pendiente' : ''}
                             </small>
@@ -164,8 +197,16 @@ export function TransactionsPage() {
                               <p className="movement-note">{item.details.note}</p>
                             )}
                           </div>
-                          <b className={item.kind === 'income' ? 'text-brand' : ''}>
-                            {item.kind === 'income' ? '+' : '-'}
+                          <b
+                            className={
+                              item.kind === 'income' || item.kind === 'savings-withdrawal'
+                                ? 'text-brand'
+                                : ''
+                            }
+                          >
+                            {item.kind === 'income' || item.kind === 'savings-withdrawal'
+                              ? '+'
+                              : '-'}
                             {formatMoney(item.amount, currency)}
                           </b>
                         </li>
@@ -219,6 +260,7 @@ export function TransactionsPage() {
           <Icon name={menu ? 'close' : 'plus'} />
         </button>
       </div>
+      {editing && <MovementEditor movement={editing} onClose={() => setEditing(null)} />}
     </AppShell>
   );
 }

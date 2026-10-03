@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useFinance } from '../../../app/state/financeContext';
 import { debtOverview, debtPlanView } from '../../../app/services/debtViews';
@@ -166,6 +166,9 @@ export function DebtsPage() {
               <dd>{detail.debt.annualInterestRate}%</dd>
             </div>
           </dl>
+          <Link className="button button-secondary mt-4" to={`/debts/${detail.debt.id}`}>
+            Abrir detalle completo
+          </Link>
           <h3 className="mt-5">Pagos registrados</h3>
           {detail.payments.length ? (
             <ul className="payment-history">

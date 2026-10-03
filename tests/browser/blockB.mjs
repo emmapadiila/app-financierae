@@ -1,4 +1,4 @@
-// Real-browser integration check. Test data lives only in an isolated Chrome profile.
+﻿// Real-browser integration check. Test data lives only in an isolated Chrome profile.
 // Requires Node 22+ and Chrome/Chromium (override path with MFF_BROWSER).
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -333,7 +333,7 @@ try {
   await available('$787.450');
   assert.ok(
     await page.evaluate(
-      'document.querySelector(".stat-card:nth-child(3)").textContent.includes("$340.000")',
+      'document.querySelectorAll(".stat-card")[2].textContent.includes("$340.000")',
     ),
   );
   checks.push('Debt payment creates movement, reduces balance and updates dashboard');
@@ -396,9 +396,7 @@ try {
   await click('Inicio');
   await available('$446.450');
   assert.ok(
-    await page.evaluate(
-      'document.querySelector(".stat-card:nth-child(3)").textContent.includes("$0")',
-    ),
+    await page.evaluate('document.querySelectorAll(".stat-card")[2].textContent.includes("$0")'),
   );
   await click('Movimientos');
   await openAction('Registrar pago');

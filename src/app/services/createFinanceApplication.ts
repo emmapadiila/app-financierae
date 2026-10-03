@@ -15,23 +15,55 @@ import {
 } from '../../features/backup/services/financeBackup';
 import { createIndexedDbFinanceStore } from '../../infrastructure/storage/indexedDbRepositories';
 import { FinanceDatabase } from '../../infrastructure/storage/FinanceDatabase';
+import { movementActions } from './movementActions';
+import { MonthlyBudgetService } from '../../features/budget/services/MonthlyBudgetService';
 
 export function createFinanceApplication(familyId: string, database = new FinanceDatabase()) {
   const store = createIndexedDbFinanceStore(database);
+  const incomes = new IncomeService(store.repositories.incomes, familyId);
+  const expenses = new ExpenseService(store.repositories.expenses, familyId);
+  const debts = new DebtService(
+    store.repositories.debts,
+    store.repositories.debtPayments,
+    store.transactionRunner,
+    familyId,
+  );
 
   return {
     database: store.database,
     services: {
-      family: new FamilyService(store.repositories.families),
-      financialSettings: new FinancialSettingsService(store.repositories.settings, familyId),
-      incomes: new IncomeService(store.repositories.incomes, familyId),
-      expenses: new ExpenseService(store.repositories.expenses, familyId),
-      debts: new DebtService(
-        store.repositories.debts,
-        store.repositories.debtPayments,
+      monthlyBudget: new MonthlyBudgetService(
+        store.repositories.budgets,
         store.transactionRunner,
         familyId,
       ),
+      movements: movementActions(
+        store.repositories,
+        store.transactionRunner,
+        familyId,
+        incomes,
+        expenses,
+      ),
+      family: new FamilyService(store.repositories.families),
+      financialSettings: new FinancialSettingsService(store.repositories.settings, familyId),
+      incomes,
+      expenses,
+      debts,
+      removeDebt: (id: string) =>
+        store.transactionRunner.run(['debts', 'debtPayments', 'transactions'], async () => {
+          const payments = await debts.getPaymentHistory(id);
+          await debts.delete(id);
+          const ids = new Set(payments.map((payment) => payment.id));
+          for (const movement of await store.repositories.transactions.list()) {
+            if (
+              movement.familyId === familyId &&
+              movement.kind === 'debt-payment' &&
+              movement.relatedEntityId &&
+              ids.has(movement.relatedEntityId)
+            )
+              await store.repositories.transactions.delete(movement.id);
+          }
+        }),
       savings: new SavingsService(
         store.repositories.savingsGoals,
         store.repositories.savingsTransactions,
