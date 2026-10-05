@@ -6,6 +6,7 @@ const positiveAmountSchema = amountSchema.gt(0);
 const dateSchema = z.iso.date();
 const timestampSchema = z.iso.datetime();
 const currencySchema = z.string().regex(/^[A-Z]{3}$/);
+const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 const timestampsSchema = z.object({
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
@@ -143,13 +144,34 @@ export const financialTransactionSchema = z
       note: z.string().trim().max(500).optional(),
       repeatMonthly: z.boolean().optional(),
       recurrenceSourceId: idSchema.optional(),
+      // Stable period of a generated occurrence; absent in legacy records.
+      recurrenceMonth: monthSchema.optional(),
+      // Exceptions belong to this original transaction's familyId and id (series).
+      omittedMonths: z.array(monthSchema)
+        .refine(months => new Set(months).size === months.length, 'Los meses omitidos no pueden repetirse.')
+        .optional(),
     }).strict().optional(),
     ...timestampsSchema.shape,
   })
-  .strict();
+  .strict()
+  .superRefine((transaction, context) => {
+    const details = transaction.details;
+    if (details?.omittedMonths && (
+      transaction.kind !== 'expense' || !details.repeatMonthly || details.recurrenceSourceId
+    )) {
+      context.addIssue({
+        code: 'custom', path: ['details', 'omittedMonths'],
+        message: 'Las excepciones solo pertenecen al origen de una serie de gastos.',
+      });
+    }
+    if (details?.recurrenceMonth && (transaction.kind !== 'expense' || !details.recurrenceSourceId || details.repeatMonthly)) {
+      context.addIssue({
+        code: 'custom', path: ['details', 'recurrenceMonth'],
+        message: 'El período recurrente solo pertenece a una ocurrencia generada.',
+      });
+    }
+  });
 export type FinancialTransaction = z.infer<typeof financialTransactionSchema>;
-
-const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 
 export const monthlyBudgetSchema = z
   .object({

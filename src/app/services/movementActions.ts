@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import type { FinancialTransaction } from '../../domain/models/financial';
+import {
+  financialTransactionSchema,
+  type FinancialTransaction,
+} from '../../domain/models/financial';
 import type {
   FinanceRepositories,
   TransactionRunner,
@@ -31,6 +34,12 @@ export function movementActions(
       const patch = raw === null ? null : patchSchema.parse(raw);
       const id = movement.relatedEntityId;
       await runner.run(['incomes', 'expenses', 'transactions'], async () => {
+        const linked = (await repositories.transactions.list()).filter(
+          (item) =>
+            item.familyId === familyId &&
+            item.kind === movement.kind &&
+            item.relatedEntityId === id,
+        );
         if (movement.kind === 'income') {
           if (patch)
             await incomes.update(id, {
@@ -48,14 +57,41 @@ export function movementActions(
               ...(!original.paidAt ? { dueDate: patch.date } : {}),
             });
             if (original.paidAt) await expenses.markAsPaid(id, `${patch.date}T12:00:00.000Z`);
-          } else await expenses.delete(id);
+          } else {
+            const occurrence = await expenses.get(id);
+            // Read persisted relationships, never trust the UI snapshot to identify a series.
+            for (const item of linked) {
+              const sourceId = item.details?.recurrenceSourceId;
+              if (!sourceId) continue;
+              const source = await repositories.transactions.get(sourceId);
+              // Deleting the original series already stops generation; preserve that behavior.
+              if (!source) continue;
+              if (
+                source.familyId !== familyId ||
+                source.kind !== 'expense' ||
+                !source.details?.repeatMonthly ||
+                source.details.recurrenceSourceId
+              )
+                throw new Error(
+                  'La ocurrencia no pertenece a una serie recurrente válida de este hogar.',
+                );
+              const month = item.details?.recurrenceMonth ?? occurrence.dueDate.slice(0, 7);
+              await repositories.transactions.save(
+                financialTransactionSchema.parse({
+                  ...source,
+                  details: {
+                    ...source.details,
+                    omittedMonths: [
+                      ...new Set([...(source.details.omittedMonths ?? []), month]),
+                    ].sort(),
+                  },
+                  updatedAt: currentTimestamp(),
+                }),
+              );
+            }
+            await expenses.delete(id);
+          }
         }
-        const linked = (await repositories.transactions.list()).filter(
-          (item) =>
-            item.familyId === familyId &&
-            item.kind === movement.kind &&
-            item.relatedEntityId === id,
-        );
         for (const item of linked) {
           if (patch)
             await repositories.transactions.save({

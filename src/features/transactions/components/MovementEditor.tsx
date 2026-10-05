@@ -34,8 +34,9 @@ export function MovementEditor({
       >
         {remove ? (
           <p>
-            Se eliminará «{movement.description}» y se actualizarán los totales. Los gastos
-            recurrentes ya generados se conservarán.
+            {movement.details?.recurrenceSourceId
+              ? `Se eliminará únicamente esta ocurrencia de «${movement.description}». Ese período no volverá a generarse. La serie y las demás ocurrencias se conservarán.`
+              : `Se eliminará «${movement.description}» y se actualizarán los totales. Los gastos recurrentes ya generados se conservarán.`}
           </p>
         ) : (
           <>

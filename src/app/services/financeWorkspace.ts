@@ -129,11 +129,14 @@ export async function materializeRecurringExpenses(app: FinanceApplication, fami
       const source = await app.repositories.expenses.get(original.relatedEntityId);
       if (!source || source.familyId !== familyId) continue;
       for (let month = addMonthsToMonth(source.dueDate.slice(0, 7), 1); month <= today.slice(0, 7); month = addMonthsToMonth(month, 1)) {
-        if (movements.some(item => item.details?.recurrenceSourceId === original.id && item.date.startsWith(month))) continue;
+        if (original.details?.omittedMonths?.includes(month)) continue;
+        if (movements.some(item => item.details?.recurrenceSourceId === original.id && (item.details.recurrenceMonth ?? item.date.slice(0, 7)) === month)) continue;
         const day = Math.min(Number(source.dueDate.slice(8)), Number(monthRange(month).end.slice(8)));
         const date = `${month}-${String(day).padStart(2, '0')}`;
         const expense = await app.services.expenses.create({ name: source.name, amount: source.amount, kind: source.kind, dueDate: date, ...(source.categoryId ? { categoryId: source.categoryId } : {}) });
-        const movement = await record(app, familyId, { kind: 'expense', description: expense.name, amount: expense.amount, date, relatedEntityId: expense.id, details: { ...original.details, repeatMonthly: false, recurrenceSourceId: original.id } });
+        const details = { ...original.details };
+        delete details.omittedMonths;
+        const movement = await record(app, familyId, { kind: 'expense', description: expense.name, amount: expense.amount, date, relatedEntityId: expense.id, details: { ...details, repeatMonthly: false, recurrenceSourceId: original.id, recurrenceMonth: month } });
         movements.push(movement);
       }
     }
