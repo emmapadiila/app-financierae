@@ -6,6 +6,7 @@ import { createDashboardModel, selectedExpenseTotal } from '../src/app/services/
 import { DebtService } from '../src/features/debts/services/DebtService';
 import { displayCurrencyInput, parseCurrencyInput } from '../src/shared/utils/currencyInput';
 import { formatMoney } from '../src/shared/utils/presentation';
+import { createId } from '../src/shared/utils/ids';
 
 describe('block A: onboarding to persisted dashboard', () => {
   let database: FinanceDatabase;
@@ -19,8 +20,8 @@ describe('block A: onboarding to persisted dashboard', () => {
     debts: [{ name: 'Deuda de prueba', creditor: 'Acreedor de prueba', principal: 800000, remainingBalance: 640000, minimumPayment: 80000, annualInterestRate: 18, dueDay: 15 }],
     savings: 190000, savingsAlreadySetAside: true,
   };
-  beforeEach(() => { database = new FinanceDatabase(`onboarding-${crypto.randomUUID()}`); });
-  afterEach(async () => { vi.restoreAllMocks(); database.close(); await database.delete(); });
+  beforeEach(() => { database = new FinanceDatabase(`onboarding-${createId()}`); });
+  afterEach(async () => { vi.restoreAllMocks(); vi.unstubAllGlobals(); database.close(); await database.delete(); });
 
   it('persists actual amounts, savings confirmation, due dates and debt progress', async () => {
     const family = await completeOnboarding(database, input, '2026-09-30');
@@ -37,6 +38,47 @@ describe('block A: onboarding to persisted dashboard', () => {
     expect(data.savingsTransactions).toHaveLength(1);
     expect(data.budgets[0]?.plannedSavings).toBe(190000);
     expect(data.debtPayments).toEqual([]);
+  });
+
+  it('persists every debt entered during onboarding', async () => {
+    const debts = [
+      ...input.debts,
+      {
+        name: 'Tarjeta secundaria',
+        creditor: 'Banco de ejemplo',
+        principal: 350000,
+        remainingBalance: 275000,
+        minimumPayment: 35000,
+        annualInterestRate: 29.5,
+        dueDay: 22,
+      },
+    ];
+    const family = await completeOnboarding(database, { ...input, debts }, '2026-09-30');
+    const app = createFinanceApplication(family.id, database);
+    const data = await loadWorkspace(app, family.id);
+
+    expect(data.debts).toHaveLength(2);
+    expect(data.debts.map(debt => debt.name).sort()).toEqual(['Deuda de prueba', 'Tarjeta secundaria']);
+    expect(data.debts.map(debt => debt.remainingBalance).sort((left, right) => left - right)).toEqual([275000, 640000]);
+  });
+
+  it('completes onboarding and saves savings when crypto.randomUUID is unavailable', async () => {
+    const secureCrypto = globalThis.crypto;
+    vi.stubGlobal('crypto', { getRandomValues: secureCrypto.getRandomValues.bind(secureCrypto) });
+
+    const family = await completeOnboarding(database, {
+      income: 2370000,
+      expenses: [],
+      debts: [],
+      savings: 190000,
+      savingsAlreadySetAside: true,
+    }, '2026-09-30');
+    const app = createFinanceApplication(family.id, database);
+    const data = await loadWorkspace(app, family.id);
+
+    expect(data.savingsGoals).toHaveLength(1);
+    expect(data.savingsTransactions).toHaveLength(1);
+    expect(data.savingsTransactions[0]?.amount).toBe(190000);
   });
 
   it('stores a savings goal without inventing a contribution when not confirmed', async () => {
@@ -98,6 +140,22 @@ describe('block A: onboarding to persisted dashboard', () => {
     const model = createDashboardModel(await loadWorkspace(app, family.id), app.calculators, '2026-09', '2026-09-30');
     expect(model.budget.available).toBe(1520000);
     expect(model.summary.totalExpenses).toBe(660000);
+  });
+
+  it('preserves debt, savings goal and contribution after closing and reopening the database', async () => {
+    const family = await completeOnboarding(database, input, '2026-09-30');
+    const databaseName = database.name;
+    database.close();
+    database = new FinanceDatabase(databaseName);
+    const app = createFinanceApplication(family.id, database);
+    const data = await loadWorkspace(app, family.id);
+
+    expect(await findFamily(database)).toEqual(family);
+    expect(data.incomes.map(item => item.amount)).toEqual([input.income]);
+    expect(data.expenses).toHaveLength(input.expenses.length);
+    expect(data.debts.map(item => item.remainingBalance)).toEqual([640000]);
+    expect(data.savingsGoals.map(item => item.targetAmount)).toEqual([input.savings]);
+    expect(data.savingsTransactions.map(item => item.amount)).toEqual([input.savings]);
   });
 
   it('uses the existing expense calculator for the selected onboarding total', () => {
