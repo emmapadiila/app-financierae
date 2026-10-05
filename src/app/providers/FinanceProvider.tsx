@@ -45,6 +45,7 @@ export function FinanceProvider({ children }: PropsWithChildren) {
     <FinanceContext.Provider
       value={{
         ...snapshot,
+        importBackup: session.importBackup,
         initialize: session.initialize,
         recordMovement: session.recordMovement,
         loading,

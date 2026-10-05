@@ -2,6 +2,8 @@ import { liveQuery } from 'dexie';
 import { FinanceDatabase } from '../../infrastructure/storage/FinanceDatabase';
 import type { Family } from '../../domain/models/financial';
 import { createFinanceApplication } from './createFinanceApplication';
+import { createIndexedDbFinanceStore } from '../../infrastructure/storage/indexedDbRepositories';
+import { importFinanceBackup } from '../../features/backup/services/financeBackup';
 import {
   completeOnboarding,
   findFamily,
@@ -23,7 +25,10 @@ export interface FinanceSnapshot {
 // React receives application operations and immutable snapshots, never a database
 // handle. Storage observation and connection ownership stay in the application layer.
 export function createFinanceSession(database = new FinanceDatabase()) {
+  const store = createIndexedDbFinanceStore(database);
   return {
+    importBackup: (json: string, confirmReplace = false) =>
+      importFinanceBackup(json, store.repositories, store.transactionRunner, { confirmReplace }),
     initialize: (input: OnboardingInput) => completeOnboarding(database, input),
     async recordMovement(input: MovementInput) {
       const family = await findFamily(database);

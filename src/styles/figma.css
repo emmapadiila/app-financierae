@@ -618,3 +618,25 @@ summary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.splash-recovery {
+  margin-top: 12px;
+}
+.splash-recovery > .button {
+  background: transparent;
+  color: white;
+  border: 1px solid #ffffff80;
+  box-shadow: none;
+}
+.restore-backup .backup-filename {
+  overflow-wrap: anywhere;
+}
+.restore-backup .form-dialog {
+  text-align: left;
+}
+.splash-recovery .form-dialog {
+  color: #162248;
+}
+[data-theme='dark'] .splash-recovery .form-dialog {
+  color: #f1f5f9;
+}

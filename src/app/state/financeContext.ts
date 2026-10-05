@@ -4,6 +4,7 @@ import type { WorkspaceData } from '../services/financeWorkspace';
 import type { FinanceSession, FinanceSnapshot } from '../services/financeSession';
 
 export interface FinanceContextValue {
+  importBackup: FinanceSession['importBackup'];
   initialize: FinanceSession['initialize'];
   recordMovement: FinanceSession['recordMovement'];
   family: Family | null;

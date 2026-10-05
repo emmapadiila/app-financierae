@@ -1,23 +1,14 @@
-import { useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useFinance } from '../../../app/state/financeContext';
 import { AppShell } from '../../../components/layout/AppShell';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { Card, Button, ErrorNotice } from '../../../components/ui/Controls';
-import { FormDialog } from '../../../components/ui/FormDialog';
-import { AsyncForm } from '../../../components/ui/AsyncForm';
-import { parseFinanceBackup, type FinanceBackup } from '../services/financeBackup';
+import { RestoreBackup } from '../components/RestoreBackup';
 import { errorMessage } from '../../../shared/utils/presentation';
 
 export function BackupPage() {
   const { app } = useFinance();
-  const navigate = useNavigate();
-  const file = useRef<HTMLInputElement>(null);
-  const [pending, setPending] = useState<{
-    json: string;
-    backup: FinanceBackup;
-    name: string;
-  } | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState('');
@@ -43,20 +34,6 @@ export function BackupPage() {
       setError(errorMessage(reason));
     } finally {
       setBusy(false);
-    }
-  }
-  async function readFile(selected: File) {
-    setError('');
-    setBusy(true);
-    try {
-      const json = await selected.text();
-      const backup = parseFinanceBackup(json);
-      setPending({ json, backup, name: selected.name });
-    } catch (reason) {
-      setError(errorMessage(reason));
-    } finally {
-      setBusy(false);
-      if (file.current) file.current.value = '';
     }
   }
   return (
@@ -88,52 +65,13 @@ export function BackupPage() {
         <Button disabled={busy} onClick={() => void exportCopy()}>
           📤 Exportar copia de seguridad
         </Button>
-        <Button disabled={busy} variant="secondary" onClick={() => file.current?.click()}>
-          📥 Importar copia de seguridad
-        </Button>
-        <input
-          ref={file}
-          type="file"
-          accept=".json,application/json"
-          aria-label="Archivo de respaldo"
-          className="sr-only"
-          onChange={(e) => {
-            const selected = e.target.files?.[0];
-            if (selected) void readFile(selected);
-          }}
-        />
+        <RestoreBackup disabled={busy} />
         {busy && <p role="status">Procesando copia…</p>}
         <ErrorNotice message={error} />
         <p className="reserve-note">
           Exporta una copia periódicamente para conservar tus datos si cambias de dispositivo.
         </p>
       </main>
-      {pending && (
-        <FormDialog title="Restaurar copia de seguridad" onClose={() => setPending(null)}>
-          <AsyncForm
-            label="Reemplazar datos e importar"
-            onCancel={() => setPending(null)}
-            onSave={async () => {
-              await app!.services.importBackup(pending.json, true);
-              setPending(null);
-              void navigate('/', { replace: true });
-            }}
-          >
-            <p>
-              <b>{pending.name}</b>
-            </p>
-            <p>
-              Hogar: {pending.backup.family?.name ?? 'Sin hogar'}. {pending.backup.expenses.length}{' '}
-              gastos, {pending.backup.debts.length} deudas y {pending.backup.savingsGoals.length}{' '}
-              metas.
-            </p>
-            <p className="error-notice">
-              Esta acción reemplaza los datos actuales por los de la copia. Exporta primero si
-              quieres conservarlos.
-            </p>
-          </AsyncForm>
-        </FormDialog>
-      )}
     </AppShell>
   );
 }
