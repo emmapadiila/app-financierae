@@ -7,6 +7,13 @@ const dateSchema = z.iso.date();
 const timestampSchema = z.iso.datetime();
 const currencySchema = z.string().regex(/^[A-Z]{3}$/);
 const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+const recurrenceValuesSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  amount: positiveAmountSchema,
+  day: z.number().int().min(1).max(31),
+}).strict();
+const recurrenceBaseSchema = recurrenceValuesSchema.extend({ startMonth: monthSchema });
+const recurrenceChangeSchema = recurrenceValuesSchema.extend({ fromMonth: monthSchema });
 const timestampsSchema = z.object({
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
@@ -146,6 +153,12 @@ export const financialTransactionSchema = z
       recurrenceSourceId: idSchema.optional(),
       // Stable period of a generated occurrence; absent in legacy records.
       recurrenceMonth: monthSchema.optional(),
+      // Rule values are independent of the historical expense at the origin.
+      recurrenceBase: recurrenceBaseSchema.optional(),
+      recurrenceChanges: z.array(recurrenceChangeSchema)
+        .refine(changes => changes.every((change, i) => i === 0 || changes[i - 1]!.fromMonth < change.fromMonth), 'Los cambios deben estar ordenados y tener meses únicos.')
+        .optional(),
+      recurrenceStoppedFrom: monthSchema.optional(),
       // Exceptions belong to this original transaction's familyId and id (series).
       omittedMonths: z.array(monthSchema)
         .refine(months => new Set(months).size === months.length, 'Los meses omitidos no pueden repetirse.')
@@ -156,6 +169,17 @@ export const financialTransactionSchema = z
   .strict()
   .superRefine((transaction, context) => {
     const details = transaction.details;
+    if ((details?.recurrenceBase || details?.recurrenceChanges || details?.recurrenceStoppedFrom) && (
+      transaction.kind !== 'expense' || !details.repeatMonthly || details.recurrenceSourceId
+    )) {
+      context.addIssue({ code: 'custom', path: ['details'], message: 'La configuración recurrente solo pertenece al origen de la serie.' });
+    }
+    if (details?.recurrenceChanges && (!details.recurrenceBase || details.recurrenceChanges.some(change => change.fromMonth < details.recurrenceBase!.startMonth))) {
+      context.addIssue({ code: 'custom', path: ['details', 'recurrenceChanges'], message: 'Los cambios necesitan un origen y no pueden ser anteriores a él.' });
+    }
+    if (details?.recurrenceStoppedFrom && (!details.recurrenceBase || details.recurrenceStoppedFrom < details.recurrenceBase.startMonth)) {
+      context.addIssue({ code: 'custom', path: ['details', 'recurrenceStoppedFrom'], message: 'El límite de la serie necesita un origen y no puede ser anterior a él.' });
+    }
     if (details?.omittedMonths && (
       transaction.kind !== 'expense' || !details.repeatMonthly || details.recurrenceSourceId
     )) {

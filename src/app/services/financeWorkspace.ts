@@ -5,8 +5,9 @@ import { FamilyService } from '../../features/settings/services/FamilyService';
 import { createIndexedDbFinanceStore } from '../../infrastructure/storage/indexedDbRepositories';
 import { BudgetCalculator } from '../../features/budget/services/BudgetCalculator';
 import { expenseCategorySchema, financialTransactionSchema, monthlyBudgetSchema, type Family, type FinancialTransaction } from '../../domain/models/financial';
-import { addMonthsToMonth, currentTimestamp, monthRange } from '../../shared/utils/dates';
+import { addMonthsToMonth, currentTimestamp } from '../../shared/utils/dates';
 import { createId } from '../../shared/utils/ids';
+import { recurrenceBase, recurrenceDate, recurrenceValues } from '../../domain/models/recurrence';
 
 export type FinanceApplication = ReturnType<typeof createFinanceApplication>;
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -123,19 +124,24 @@ export async function completeOnboarding(database: FinanceDatabase, raw: Onboard
 export async function materializeRecurringExpenses(app: FinanceApplication, familyId: string, today = localDate()) {
   await app.database.transaction('rw', app.database.tables, async () => {
     const movements = (await app.repositories.transactions.list()).filter(item => item.familyId === familyId);
+    const expenseDates = new Map((await app.services.expenses.list()).map(expense => [expense.id, expense.dueDate]));
     const originals = movements.filter(item => item.kind === 'expense' && item.details?.repeatMonthly && !item.details.recurrenceSourceId);
     for (const original of originals) {
       if (!original.relatedEntityId) continue;
       const source = await app.repositories.expenses.get(original.relatedEntityId);
       if (!source || source.familyId !== familyId) continue;
-      for (let month = addMonthsToMonth(source.dueDate.slice(0, 7), 1); month <= today.slice(0, 7); month = addMonthsToMonth(month, 1)) {
+      for (let month = addMonthsToMonth(recurrenceBase(original, source).startMonth, 1); month <= today.slice(0, 7); month = addMonthsToMonth(month, 1)) {
+        if (original.details?.recurrenceStoppedFrom && month >= original.details.recurrenceStoppedFrom) break;
         if (original.details?.omittedMonths?.includes(month)) continue;
-        if (movements.some(item => item.details?.recurrenceSourceId === original.id && (item.details.recurrenceMonth ?? item.date.slice(0, 7)) === month)) continue;
-        const day = Math.min(Number(source.dueDate.slice(8)), Number(monthRange(month).end.slice(8)));
-        const date = `${month}-${String(day).padStart(2, '0')}`;
-        const expense = await app.services.expenses.create({ name: source.name, amount: source.amount, kind: source.kind, dueDate: date, ...(source.categoryId ? { categoryId: source.categoryId } : {}) });
+        if (movements.some(item => item.details?.recurrenceSourceId === original.id && (item.details.recurrenceMonth ?? (expenseDates.get(item.relatedEntityId ?? '') ?? item.date).slice(0, 7)) === month)) continue;
+        const values = recurrenceValues(original, source, month);
+        const date = recurrenceDate(month, values.day);
+        const expense = await app.services.expenses.create({ name: values.name, amount: values.amount, kind: source.kind, dueDate: date, ...(source.categoryId ? { categoryId: source.categoryId } : {}) });
         const details = { ...original.details };
         delete details.omittedMonths;
+        delete details.recurrenceBase;
+        delete details.recurrenceChanges;
+        delete details.recurrenceStoppedFrom;
         const movement = await record(app, familyId, { kind: 'expense', description: expense.name, amount: expense.amount, date, relatedEntityId: expense.id, details: { ...details, repeatMonthly: false, recurrenceSourceId: original.id, recurrenceMonth: month } });
         movements.push(movement);
       }
