@@ -29,3 +29,15 @@ export function recurrenceDate(month: string, day: number) {
 export function occurrenceMonth(movement: FinancialTransaction, expense: Expense) {
   return movement.details?.recurrenceMonth ?? expense.dueDate.slice(0, 7);
 }
+
+export function isRecurrencePaused(source: FinancialTransaction, month: string) {
+  return Boolean(source.details?.recurrencePauses?.some(range =>
+    month >= range.fromMonth && (!range.resumeMonth || month < range.resumeMonth)
+  ));
+}
+
+export function recurrenceStatus(source: FinancialTransaction, month: string) {
+  if (source.details?.recurrenceStoppedFrom && month >= source.details.recurrenceStoppedFrom) return 'stopped';
+  if (source.details?.recurrenceEndMonth && month > source.details.recurrenceEndMonth) return 'ended';
+  return isRecurrencePaused(source, month) ? 'paused' : 'active';
+}

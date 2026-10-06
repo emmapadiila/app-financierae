@@ -17,6 +17,8 @@ import { createIndexedDbFinanceStore } from '../../infrastructure/storage/indexe
 import { FinanceDatabase } from '../../infrastructure/storage/FinanceDatabase';
 import { movementActions } from './movementActions';
 import { MonthlyBudgetService } from '../../features/budget/services/MonthlyBudgetService';
+import { recurrenceActions, type RecurrenceAction } from './recurrenceActions';
+import { materializeRecurringExpenses } from './financeWorkspace';
 
 export function createFinanceApplication(familyId: string, database = new FinanceDatabase()) {
   const store = createIndexedDbFinanceStore(database);
@@ -32,6 +34,15 @@ export function createFinanceApplication(familyId: string, database = new Financ
   return {
     database: store.database,
     services: {
+      recurrences: {
+        async change(sourceId: string, action: RecurrenceAction): Promise<void> {
+          // Rule changes, pending-record cleanup and regeneration commit together.
+          await store.database.transaction('rw', store.database.tables, async () => {
+            await recurrenceActions(store.repositories, store.transactionRunner, familyId, expenses).change(sourceId, action);
+            await materializeRecurringExpenses(createFinanceApplication(familyId, database), familyId);
+          });
+        },
+      },
       monthlyBudget: new MonthlyBudgetService(
         store.repositories.budgets,
         store.transactionRunner,

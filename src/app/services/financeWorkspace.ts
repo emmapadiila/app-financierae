@@ -7,7 +7,7 @@ import { BudgetCalculator } from '../../features/budget/services/BudgetCalculato
 import { expenseCategorySchema, financialTransactionSchema, monthlyBudgetSchema, type Family, type FinancialTransaction } from '../../domain/models/financial';
 import { addMonthsToMonth, currentTimestamp } from '../../shared/utils/dates';
 import { createId } from '../../shared/utils/ids';
-import { recurrenceBase, recurrenceDate, recurrenceValues } from '../../domain/models/recurrence';
+import { isRecurrencePaused, recurrenceBase, recurrenceDate, recurrenceValues } from '../../domain/models/recurrence';
 
 export type FinanceApplication = ReturnType<typeof createFinanceApplication>;
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -132,6 +132,8 @@ export async function materializeRecurringExpenses(app: FinanceApplication, fami
       if (!source || source.familyId !== familyId) continue;
       for (let month = addMonthsToMonth(recurrenceBase(original, source).startMonth, 1); month <= today.slice(0, 7); month = addMonthsToMonth(month, 1)) {
         if (original.details?.recurrenceStoppedFrom && month >= original.details.recurrenceStoppedFrom) break;
+        if (original.details?.recurrenceEndMonth && month > original.details.recurrenceEndMonth) break;
+        if (isRecurrencePaused(original, month)) continue;
         if (original.details?.omittedMonths?.includes(month)) continue;
         if (movements.some(item => item.details?.recurrenceSourceId === original.id && (item.details.recurrenceMonth ?? (expenseDates.get(item.relatedEntityId ?? '') ?? item.date).slice(0, 7)) === month)) continue;
         const values = recurrenceValues(original, source, month);
@@ -142,6 +144,8 @@ export async function materializeRecurringExpenses(app: FinanceApplication, fami
         delete details.recurrenceBase;
         delete details.recurrenceChanges;
         delete details.recurrenceStoppedFrom;
+        delete details.recurrencePauses;
+        delete details.recurrenceEndMonth;
         const movement = await record(app, familyId, { kind: 'expense', description: expense.name, amount: expense.amount, date, relatedEntityId: expense.id, details: { ...details, repeatMonthly: false, recurrenceSourceId: original.id, recurrenceMonth: month } });
         movements.push(movement);
       }
